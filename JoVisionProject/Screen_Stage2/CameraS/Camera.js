@@ -1,0 +1,145 @@
+import React, { useState, useEffect, useRef } from "react";
+import { View, Text, StyleSheet, Button, Image } from "react-native";
+import { Camera, useCameraDevice } from "react-native-vision-camera";
+import { CameraRoll } from "@react-native-camera-roll/camera-roll";
+import requestCameraPermission from "./permissions";
+
+const CameraScreen = () => {
+  const [cameraPicker, setCameraPicker] = useState(false);
+  const [hasPermission, setHasPermission] = useState(false);
+  const [media, setMedia] = useState(null); // Changed from `photo` to `media`
+  const [mode, setMode] = useState('photo'); // 'photo' or 'video'
+  const [isRecording, setIsRecording] = useState(false);
+  const device = useCameraDevice(cameraPicker ? 'front' : 'back');
+  const cameraRef = useRef(null);
+
+  useEffect(() => {
+    const getPermission = async () => {
+      const granted = await requestCameraPermission();
+      setHasPermission(granted);
+    };
+    getPermission();
+  }, []);
+
+  const changeCamera = () => {
+    setCameraPicker(!cameraPicker);
+  };
+
+  const switchMode = () => {
+    setMode(mode === 'photo' ? 'video' : 'photo');
+  };
+
+  const takePhotoOrRecord = async () => {
+    if (cameraRef.current) {
+      if (mode === 'photo') {
+        try {
+          const takenPhoto = await cameraRef.current.takePhoto();
+          console.log('Photo taken:', takenPhoto);
+          if (takenPhoto) {
+            setMedia(takenPhoto);
+          }
+        } catch (error) {
+          console.error('Error taking photo:', error);
+        }
+      } else if (mode === 'video') {
+        if (isRecording) {
+          try {
+            await cameraRef.current.stopRecording();
+            console.log('Recording stopped');
+            setIsRecording(false);
+          } catch (error) {
+            console.error('Error stopping recording:', error);
+          }
+        } else {
+          try {
+            const video = await cameraRef.current.startRecording();
+            console.log('Recording started:', video);
+            if (video) {
+              setMedia(video);
+              setIsRecording(true);
+            }
+          } catch (error) {
+            console.error('Error starting recording:', error);
+          }
+        }
+      }
+    }
+  };
+
+  const saveMediaToCameraRoll = async (uri) => {
+    try {
+      const type = uri.endsWith('.jpg') ? 'photo' : 'video';
+      await CameraRoll.save(uri, { type });
+      console.log('Media saved to camera roll');
+      setMedia(null); // Clear the media state after saving
+    } catch (error) {
+      console.error('Error saving media to camera roll:', error);
+    }
+  };
+
+  const discardMedia = () => {
+    setMedia(null);
+  };
+
+  return (
+    <View style={styles.container}>
+      {hasPermission && device ? (
+        <>
+          {media ? (
+            <>
+              <Image source={{ uri: `file://${media.path}` }} style={styles.preview} />
+              <View style={styles.buttonContainer}>
+                <Button title="Save" onPress={() => saveMediaToCameraRoll(media.path)} />
+                <Button title="Discard" onPress={discardMedia} />
+              </View>
+            </>
+          ) : (
+            <>
+              <Camera
+                ref={cameraRef}
+                style={StyleSheet.absoluteFill}
+                device={device}
+                isActive={true}
+                photo={mode === 'photo'}
+                video={mode === 'video'}
+              />
+              <Button title="Switch Camera" onPress={changeCamera} />
+              <Button title={`Switch to ${mode === 'photo' ? 'Video' : 'Photo'} Mode`} onPress={switchMode} />
+              <Button
+                title={mode === 'photo' ? 'Take Photo' : (isRecording ? 'Stop Recording' : 'Start Recording')}
+                onPress={takePhotoOrRecord}
+              />
+            </>
+          )}
+        </>
+      ) : (
+        <Text style={styles.errorText}>Camera not available</Text>
+      )}
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  preview: {
+    ...StyleSheet.absoluteFillObject,
+    resizeMode: 'contain',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 20,
+  },
+  errorText: {
+    fontSize: 18,
+    color: 'red',
+    textAlign: 'center',
+    marginTop: 'auto',
+    marginBottom: 'auto',
+  },
+});
+
+export default CameraScreen;
