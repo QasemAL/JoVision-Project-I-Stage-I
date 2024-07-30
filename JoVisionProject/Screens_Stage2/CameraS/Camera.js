@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { View, Text, StyleSheet, Button, Image } from "react-native";
 import { Camera, useCameraDevice } from "react-native-vision-camera";
 import { CameraRoll } from "@react-native-camera-roll/camera-roll";
+import Video from 'react-native-video'; // Import the video player
 import requestCameraPermission from "./permissions";
 
 const CameraScreen = () => {
@@ -31,37 +32,40 @@ const CameraScreen = () => {
 
   const takePhotoOrRecord = async () => {
     if (cameraRef.current) {
-      if (mode === 'photo') {
-        try {
+      try {
+        if (mode === 'photo') {
           const takenPhoto = await cameraRef.current.takePhoto();
           console.log('Photo taken:', takenPhoto);
           if (takenPhoto) {
-            setMedia(takenPhoto);
+            setMedia(takenPhoto.path); // Correctly set media path
           }
-        } catch (error) {
-          console.error('Error taking photo:', error);
-        }
-      } else if (mode === 'video') {
-        if (isRecording) {
-          try {
+        } else if (mode === 'video') {
+          if (isRecording) {
             await cameraRef.current.stopRecording();
             console.log('Recording stopped');
             setIsRecording(false);
-          } catch (error) {
-            console.error('Error stopping recording:', error);
-          }
-        } else {
-          try {
-            const video = await cameraRef.current.startRecording();
+          } else {
+            const video = await cameraRef.current.startRecording({
+              onRecordingFinished: (video) => {
+                console.log('Recording finished:', video);
+                if (video && video.path) {
+                  setMedia(video.path); // Use the correct path for video
+                } else {
+                  console.error('Recording finished with no video path');
+                }
+                setIsRecording(false);
+              },
+              onRecordingError: (error) => {
+                console.error('Error during recording:', error);
+                setIsRecording(false);
+              },
+            });
+            setIsRecording(true);
             console.log('Recording started:', video);
-            if (video) {
-              setMedia(video);
-              setIsRecording(true);
-            }
-          } catch (error) {
-            console.error('Error starting recording:', error);
           }
         }
+      } catch (error) {
+        console.error('Error in takePhotoOrRecord:', error);
       }
     }
   };
@@ -86,13 +90,22 @@ const CameraScreen = () => {
       {hasPermission && device ? (
         <>
           {media ? (
-            <>
-              <Image source={{ uri: `file://${media.path}` }} style={styles.preview} />
+            <View style={styles.previewContainer}>
+              {media.endsWith('.jpg') ? (
+                <Image source={{ uri: `file://${media}` }} style={styles.preview} />
+              ) : (
+                <Video
+                  source={{ uri: `file://${media}` }}
+                  style={styles.preview}
+                  controls={true}
+                  resizeMode="contain"
+                />
+              )}
               <View style={styles.buttonContainer}>
-                <Button title="Save" onPress={() => saveMediaToCameraRoll(media.path)} />
+                <Button title="Save" onPress={() => saveMediaToCameraRoll(media)} />
                 <Button title="Discard" onPress={discardMedia} />
               </View>
-            </>
+            </View>
           ) : (
             <>
               <Camera
@@ -124,9 +137,14 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-end',
   },
+  previewContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   preview: {
-    ...StyleSheet.absoluteFillObject,
-    resizeMode: 'contain',
+    width: '100%',
+    height: '100%',
   },
   buttonContainer: {
     flexDirection: 'row',

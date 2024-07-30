@@ -9,7 +9,7 @@ import Slideshow from "./Slideshow";
 
 const Tab = createBottomTabNavigator();
 
-const Project2 = () => {
+const Project = () => {
   return (
     <View style={styles.container}>
       <NavigationContainer>
@@ -30,4 +30,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Project2;
+export default Project;
