@@ -37,8 +37,15 @@ const CameraScreen = () => {
         if (mode === 'photo') {
           const takenPhoto = await cameraRef.current.takePhoto();
           console.log('Photo taken:', takenPhoto);
+          console.log(takenPhoto.path);
+          const now = new Date();
+const formattedDate = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+const newpath = `${RNFS.DocumentDirectoryPath}/QasemQudah_${formattedDate}.jpg`;
+          RNFS.copyFile(takenPhoto.path, newpath);
+          console.log('Photo copied to:', newpath);
           if (takenPhoto) {
-            setMedia(takenPhoto.path); // Correctly set media path
+            takenPhoto.path = newpath;
+            setMedia(takenPhoto.path);
           }
         } else if (mode === 'video') {
           if (isRecording) {
