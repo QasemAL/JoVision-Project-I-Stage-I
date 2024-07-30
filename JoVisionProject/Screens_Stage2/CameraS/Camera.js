@@ -2,14 +2,15 @@ import React, { useState, useEffect, useRef } from "react";
 import { View, Text, StyleSheet, Button, Image } from "react-native";
 import { Camera, useCameraDevice } from "react-native-vision-camera";
 import { CameraRoll } from "@react-native-camera-roll/camera-roll";
-import Video from 'react-native-video'; // Import the video player
+import Video from 'react-native-video';
+import RNFS from 'react-native-fs';
 import requestCameraPermission from "./permissions";
 
 const CameraScreen = () => {
   const [cameraPicker, setCameraPicker] = useState(false);
   const [hasPermission, setHasPermission] = useState(false);
-  const [media, setMedia] = useState(null); // Changed from `photo` to `media`
-  const [mode, setMode] = useState('photo'); // 'photo' or 'video'
+  const [media, setMedia] = useState(null); 
+  const [mode, setMode] = useState('photo'); 
   const [isRecording, setIsRecording] = useState(false);
   const device = useCameraDevice(cameraPicker ? 'front' : 'back');
   const cameraRef = useRef(null);
@@ -49,7 +50,7 @@ const CameraScreen = () => {
               onRecordingFinished: (video) => {
                 console.log('Recording finished:', video);
                 if (video && video.path) {
-                  setMedia(video.path); // Use the correct path for video
+                  setMedia(video.path); 
                 } else {
                   console.error('Recording finished with no video path');
                 }
