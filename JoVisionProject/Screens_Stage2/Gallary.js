@@ -14,7 +14,7 @@ const Gallary = () => {
     try {
       const result = await CameraRoll.getPhotos({
         first: 20, // Number of photos to load
-        assetType: "Photos",
+        assetType: "All",
       });
       setPhotos(result.edges.map(edge => edge.node.image));
     } catch (error) {
