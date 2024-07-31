@@ -5,7 +5,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import CameraScreen from "./CameraS/Camera";
 import sensors from "./SensorS/sensors";
 import Gallary from "./Gallary";
-import Slideshow from "./Slideshow";
+import FullScreenView from "./Slideshow";
 
 const Tab = createBottomTabNavigator();
 
@@ -17,7 +17,7 @@ const Project = () => {
           <Tab.Screen name="Screen1" component={CameraScreen} />
           <Tab.Screen name="Screen2" component={sensors} />
           <Tab.Screen name="Screen3" component={Gallary} />
-          <Tab.Screen name="Screen4" component={Slideshow} />
+          <Tab.Screen name="Screen4" component={FullScreenView}  />
         </Tab.Navigator>
       </NavigationContainer>
     </View>

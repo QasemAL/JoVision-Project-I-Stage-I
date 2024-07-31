@@ -1,39 +1,46 @@
 import React, { useEffect, useState, useRef } from "react";
-import { View, Text, StyleSheet, FlatList, Image, RefreshControl, Button } from "react-native";
+import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, RefreshControl, Dimensions } from "react-native";
+import Video from 'react-native-video';
 import { CameraRoll } from "@react-native-camera-roll/camera-roll";
+import { useRoute } from '@react-navigation/native';
+
+const { width, height } = Dimensions.get('window');
 
 const Slideshow = () => {
   const [photos, setPhotos] = useState([]);
   const [index, setIndex] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
-  const [paused, setPaused] = useState(false);
   const flatListRef = useRef(null);
+  const videoRef = useRef(null);
+  const route = useRoute();
+  const { media } = route.params; // Get the initial media from navigation params
 
   useEffect(() => {
     loadPhotos();
   }, []);
 
   useEffect(() => {
-    let interval;
-    if (!paused && photos.length > 0) {
-      interval = setInterval(() => {
-        setIndex((prevIndex) => (prevIndex + 1) % photos.length);
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [paused, photos]);
-
-  useEffect(() => {
-    if (!paused && flatListRef.current && photos.length > 0) {
+    // Scroll to the current index
+    if (flatListRef.current && photos.length > 0) {
       flatListRef.current.scrollToIndex({ index, animated: true });
     }
-  }, [index, paused, photos]);
+  }, [index, photos]);
+
+  useEffect(() => {
+    if (media) {
+      // Find the index of the initial media in the photos array
+      const initialIndex = photos.findIndex(photo => photo.uri === media);
+      if (initialIndex !== -1) {
+        setIndex(initialIndex);
+      }
+    }
+  }, [media, photos]);
 
   const loadPhotos = async () => {
     try {
       const result = await CameraRoll.getPhotos({
         first: 20,
-        assetType: "Photos",
+        assetType: "All",
       });
       setPhotos(result.edges.map(edge => edge.node.image));
     } catch (error) {
@@ -47,31 +54,79 @@ const Slideshow = () => {
     setRefreshing(false);
   };
 
-  const handlePauseResume = () => {
-    setPaused(!paused);
+  const handleNext = () => {
+    setIndex((prevIndex) => (prevIndex + 1) % photos.length);
   };
+
+  const handlePrevious = () => {
+    setIndex((prevIndex) => (prevIndex - 1 + photos.length) % photos.length);
+  };
+
+  const handleForward = () => {
+    if (videoRef.current) {
+      videoRef.current.seek(videoRef.current.getCurrentTime() + 5);
+    }
+  };
+
+  const handleRewind = () => {
+    if (videoRef.current) {
+      videoRef.current.seek(videoRef.current.getCurrentTime() - 5);
+    }
+  };
+
+  const renderItem = ({ item }) => {
+    if (item.uri.endsWith('.mp4')) {
+      // Render video
+      return (
+        <Video
+          ref={videoRef}
+          source={{ uri: item.uri }}
+          style={styles.video}
+          controls
+          onEnd={handleNext}
+        />
+      );
+    } else {
+      // Render image
+      return (
+        <Image source={{ uri: item.uri }} style={styles.image} />
+      );
+    }
+  };
+
+  const getItemLayout = (data, index) => ({
+    length: height,
+    offset: height * index,
+    index,
+  });
 
   return (
     <View style={styles.container}>
-      <Text>Slideshow</Text>
       <FlatList
         ref={flatListRef}
         data={photos}
         keyExtractor={(item) => item.uri}
         numColumns={1}
-        renderItem={({ item }) => (
-          <Image source={{ uri: item.uri }} style={styles.image} />
-        )}
-        scrollEnabled={paused} 
+        renderItem={renderItem}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
+        getItemLayout={getItemLayout}
       />
-      <Button
-        title={paused ? "Resume Slideshow" : "Pause Slideshow"}
-        onPress={handlePauseResume}
-        style={styles.button}
-      />
+      <View style={styles.controls}>
+        <TouchableOpacity onPress={handlePrevious}>
+          <Text style={styles.controlText}>Previous</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={handleNext}>
+          <Text style={styles.controlText}>Next</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={handleRewind}>
+          <Text style={styles.controlText}>Rewind 5s</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={handleForward}>
+          <Text style={styles.controlText}>Forward 5s</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -84,12 +139,25 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   image: {
-    width: 400,
-    height: 800,
+    width: width,
+    height: height,
     resizeMode: "cover",
   },
-  button: {
-    marginTop: 20,
+  video: {
+    width: width,
+    height: height,
+  },
+  controls: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    padding: 10,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    width: '100%',
+  },
+  controlText: {
+    color: "white",
+    fontSize: 16,
+    padding: 10,
   },
 });
 

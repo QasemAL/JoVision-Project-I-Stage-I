@@ -2,13 +2,15 @@ import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, FlatList, Image, RefreshControl, TouchableOpacity, Alert, TextInput } from "react-native";
 import { CameraRoll } from "@react-native-camera-roll/camera-roll";
 import RNFS from "react-native-fs";
-import { Colors } from "react-native/Libraries/NewAppScreen";
+import { useNavigation } from '@react-navigation/native';
 
 const Gallary = () => {
   const [photos, setPhotos] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [newName, setNewName] = useState("");
+
+  const navigation = useNavigation(); // Access navigation prop
 
   useEffect(() => {
     loadPhotos();
@@ -40,35 +42,35 @@ const Gallary = () => {
 
     const { uri } = selectedItem;
     const fileInfo = await RNFS.stat(uri);
-    console.log("File Info: ", fileInfo.originalFilepath);
-   
     const fileExtension = fileInfo.originalFilepath.split('.').pop();
     const newUri = `${RNFS.PicturesDirectoryPath}/${newName}.${fileExtension}`;
-    console.log("URI: "+fileInfo.originalFilepath);
-    console.log("NewURI: "+newUri);
+    
     try {
        await RNFS.moveFile(fileInfo.originalFilepath, newUri);
-       console.log('PhotoName Changed to:', newUri);
-      await loadPhotos();
-      setSelectedItem(null);
-      setNewName("");
+       await loadPhotos();
+       setSelectedItem(null);
+       setNewName("");
     } catch (error) {
       console.log("Error renaming file: ", error);
     }
   };
 
-
-
   const handleDelete = async () => {
     const { uri } = selectedItem;
     const fileInfo = await RNFS.stat(uri);
-    console.log("File Info: ", fileInfo.originalFilepath);
+    
     try {
       await RNFS.unlink(fileInfo.originalFilepath);
       await loadPhotos();
       setSelectedItem(null);
     } catch (error) {
       console.log("Error deleting file: ", error);
+    }
+  };
+
+  const handleFullScreen = () => {
+    if (selectedItem) {
+      navigation.navigate('Screen4', { media: selectedItem.uri });
     }
   };
 
@@ -103,6 +105,9 @@ const Gallary = () => {
           </TouchableOpacity>
           <TouchableOpacity style={styles.button} onPress={handleDelete}>
             <Text style={styles.buttonText}>Delete</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.button} onPress={handleFullScreen}>
+            <Text style={styles.buttonText}>Full Screen</Text>
           </TouchableOpacity>
         </View>
       )}
