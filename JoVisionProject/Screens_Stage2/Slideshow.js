@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, RefreshContr
 import Video from 'react-native-video';
 import { CameraRoll } from "@react-native-camera-roll/camera-roll";
 import { useRoute } from '@react-navigation/native';
+import RNFS from "react-native-fs";
 
 const { width, height } = Dimensions.get('window');
 
@@ -29,7 +30,7 @@ const Slideshow = () => {
   useEffect(() => {
     if (media) {
       // Find the index of the initial media in the photos array
-      const initialIndex = photos.findIndex(photo => photo.uri === media);
+      const initialIndex = photos.findIndex(photo => photo.uri === media.uri);
       if (initialIndex !== -1) {
         setIndex(initialIndex);
       }
@@ -75,7 +76,15 @@ const Slideshow = () => {
   };
 
   const renderItem = ({ item }) => {
-    if (item.uri.endsWith('.mp4')) {
+
+    console.log("item"+item);
+    const { uri } = item;
+    const fileInfo =  RNFS.stat(uri);
+    console.log( "fileinfo"+fileInfo);
+    console.log(`Rendering item: ${item.uri}, Type: ${item.uri.endsWith('.mp4') ? 'Video' : 'Photo'}`);
+    const isVideo = item.uri.endsWith('.mp4') || item.uri.endsWith('.mov');
+    
+    if (isVideo) {
       // Render video
       return (
         <Video
@@ -83,6 +92,7 @@ const Slideshow = () => {
           source={{ uri: item.uri }}
           style={styles.video}
           controls
+          paused={false} // Ensure video is playing
           onEnd={handleNext}
         />
       );

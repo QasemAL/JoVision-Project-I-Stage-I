@@ -70,7 +70,8 @@ const Gallary = () => {
 
   const handleFullScreen = () => {
     if (selectedItem) {
-      navigation.navigate('Screen4', { media: selectedItem.uri });
+      navigation.navigate('Screen4', { media: selectedItem });
+      console.log('FullScreen', selectedItem);
     }
   };
 
