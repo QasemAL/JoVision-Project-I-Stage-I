@@ -68,12 +68,35 @@ const Gallary = () => {
     }
   };
 
-  const handleFullScreen = () => {
+  const handleFullScreen = async () => {
     if (selectedItem) {
-      navigation.navigate('Screen4', { media: selectedItem });
-      console.log('FullScreen', selectedItem);
+      const { uri } = selectedItem;
+  
+      try {
+        const fileInfo = await RNFS.stat(uri);
+        console.log("fileInfo:", fileInfo);
+  
+        // Extract the file extension from the URI
+        const fileExtension = uri.split('.').pop().toLowerCase();
+        console.log("fileExtension:", fileExtension);
+  
+        // Validate the extension and assign the type
+        const mediaType = fileExtension === 'mp4' || fileExtension === 'mov' ? 'video' : 'image';
+        console.log("mediaType:", mediaType);
+  
+        // Navigate to Screen4 with the media and its type
+        navigation.navigate('Screen4', {
+          media: {
+            uri: selectedItem.uri, // URI of the media
+            type: mediaType, // Type of media: 'image' or 'video'
+          }
+        });
+      } catch (error) {
+        console.error('Failed to get file info:', error);
+      }
     }
   };
+  
 
   const renderItem = ({ item }) => (
     <TouchableOpacity onPress={() => setSelectedItem(item)}>

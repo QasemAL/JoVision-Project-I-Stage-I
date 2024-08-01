@@ -75,12 +75,8 @@ const Slideshow = () => {
     }
   };
 
-  const renderItem = ({ item }) => {
+  const renderItem =  ({ item }) => {
 
-    console.log("item"+item);
-    const { uri } = item;
-    const fileInfo =  RNFS.stat(uri);
-    console.log( "fileinfo"+fileInfo);
     console.log(`Rendering item: ${item.uri}, Type: ${item.uri.endsWith('.mp4') ? 'Video' : 'Photo'}`);
     const isVideo = item.uri.endsWith('.mp4') || item.uri.endsWith('.mov');
     
