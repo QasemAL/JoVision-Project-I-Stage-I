@@ -77,7 +77,7 @@ const Gallary = () => {
         console.log("fileInfo:", fileInfo);
   
         // Extract the file extension from the URI
-        const fileExtension = uri.split('.').pop().toLowerCase();
+        const fileExtension = fileInfo.originalFilepath.split('.').pop().toLowerCase();
         console.log("fileExtension:", fileExtension);
   
         // Validate the extension and assign the type

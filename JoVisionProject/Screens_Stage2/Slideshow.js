@@ -11,6 +11,7 @@ const Slideshow = () => {
   const [photos, setPhotos] = useState([]);
   const [index, setIndex] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0); // Track current playback time
   const flatListRef = useRef(null);
   const videoRef = useRef(null);
   const route = useRoute();
@@ -43,7 +44,19 @@ const Slideshow = () => {
         first: 20,
         assetType: "All",
       });
-      setPhotos(result.edges.map(edge => edge.node.image));
+
+      const updatedPhotos = await Promise.all(
+        result.edges.map(async (edge) => {
+          const { uri } = edge.node.image;
+          const fileInfo = await RNFS.stat(uri);
+          const fileExtension = fileInfo.originalFilepath.split('.').pop().toLowerCase();
+          const mediaType = fileExtension === 'mp4' || fileExtension === 'mov' ? 'video' : 'image';
+
+          return { ...edge.node.image, mediaType };
+        })
+      );
+
+      setPhotos(updatedPhotos);
     } catch (error) {
       console.log("Error loading photos: ", error);
     }
@@ -65,23 +78,24 @@ const Slideshow = () => {
 
   const handleForward = () => {
     if (videoRef.current) {
-      videoRef.current.seek(videoRef.current.getCurrentTime() + 5);
+      videoRef.current.seek(currentTime + 5);
     }
   };
 
   const handleRewind = () => {
     if (videoRef.current) {
-      videoRef.current.seek(videoRef.current.getCurrentTime() - 5);
+      videoRef.current.seek(currentTime - 5);
     }
   };
 
-  const renderItem =  ({ item }) => {
+  const onProgress = (data) => {
+    setCurrentTime(data.currentTime);
+  };
 
-    console.log(`Rendering item: ${item.uri}, Type: ${item.uri.endsWith('.mp4') ? 'Video' : 'Photo'}`);
-    const isVideo = item.uri.endsWith('.mp4') || item.uri.endsWith('.mov');
-    
+  const renderItem = ({ item }) => {
+    const isVideo = item.mediaType === 'video';
+
     if (isVideo) {
-      // Render video
       return (
         <Video
           ref={videoRef}
@@ -90,10 +104,10 @@ const Slideshow = () => {
           controls
           paused={false} // Ensure video is playing
           onEnd={handleNext}
+          onProgress={onProgress} // Track playback time
         />
       );
     } else {
-      // Render image
       return (
         <Image source={{ uri: item.uri }} style={styles.image} />
       );
